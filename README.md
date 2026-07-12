@@ -20,6 +20,7 @@
 - [What I Did](#-what-i-did)
 - [Actions Taken](#️-actions-taken--project-workflow)
 - [Results & Insights](#-results--insights)
+- [A/B Testing — Discount Impact Validation](#-ab-testing--discount-impact-validation)
 - [Business Recommendations & Impact](#-business-recommendations--projected-impact)
 - [Project Structure](#-project-structure)
 - [Tech Stack & Concepts](#-tech-stack--concepts-used)
@@ -50,6 +51,7 @@ The scope covered:
 - Designing and pushing the dataset to a MySQL database
 - Authoring **19 structured SQL queries** answering key business questions
 - Building a Power BI dashboard for stakeholder consumption
+- Running statistical A/B testing to validate discount impact on revenue, margin, and volume
 - Translating findings into 6 prioritised business recommendations
 
 ---
@@ -127,7 +129,11 @@ SELECT ROUND(AVG(gross_margin_percent), 2) AS avg_margin FROM glowcart_sales;
 
 **People & Time Layer** — Top Revenue/Profit Sales Reps, Revenue by Month/Quarter, Region + Channel Profit combinations
 
-### Step 6 — Power BI Dashboard
+### Step 6 — A/B Testing (Statistical Validation)
+
+To move beyond descriptive trends, an independent-samples **Welch's t-test** was run in Python using `scipy.stats` to statistically validate whether discount level causes a real difference in revenue, margin, and volume outcomes. Full methodology and results are documented below in [A/B Testing — Discount Impact Validation](#-ab-testing--discount-impact-validation).
+
+### Step 7 — Power BI Dashboard
 Built an interactive dashboard (`GlowCart Beauty Sales Analysis.pbix`) covering all dimensions with drill-down capability across region, channel, product, and rep.
 
 ---
@@ -227,6 +233,37 @@ Built an interactive dashboard (`GlowCart Beauty Sales Analysis.pbix`) covering 
 
 ---
 
+## 🧪 A/B Testing — Discount Impact Validation
+
+To statistically validate whether discount level causes a real, measurable difference in business outcomes (rather than just an observed trend), an **independent samples t-test (Welch's t-test)** was run comparing low-discount vs high-discount transactions.
+
+### Experiment Design
+
+| Group | Definition | Role |
+|-------|-----------|------|
+| **Group A** | Discount ≤ 10% | Control (low discount) |
+| **Group B** | Discount > 20% | Treatment (high discount) |
+
+**Method:** `scipy.stats.ttest_ind(a, b, equal_var=False)` — Welch's t-test, chosen over the standard t-test because group sizes and variances are not assumed equal.
+
+**Metrics tested:** Net Revenue, Gross Margin %, Quantity Sold
+
+### Results
+
+| Metric | Mean (Group A) | Mean (Group B) | t-statistic | p-value | Significant (p<0.05)? |
+|--------|----------------|-----------------|-------------|---------|-------------------------|
+| Net Revenue | ₹15,782.85 | ₹12,089.01 | 7.841 | 0.00000 | ✅ True |
+| Gross Margin % | 60.81% | 48.44% | 42.717 | 0.00000 | ✅ True |
+| Qty Sold | 30.53 | 30.88 | -0.590 | 0.55503 | ❌ False |
+
+### Insight
+
+> High-discount transactions (Group B) show a **statistically significant drop** in both average net revenue (₹12,089 vs ₹15,783) and gross margin (48.44% vs 60.81%) compared to low-discount transactions — confirmed with extremely strong significance (p < 0.00001) on both metrics. However, quantity sold shows **no statistically significant difference** between groups (p = 0.555) — meaning bigger discounts are **not** meaningfully driving higher unit sales.
+>
+> **This is a critical finding:** the data disproves the common assumption that "discounting drives volume." In this dataset, high discounts erode revenue and margin **without a corresponding lift in units sold** — directly reinforcing the case for **REC 2 (Rationalise the Discount Policy)**. The discount strategy is not paying for itself in volume terms.
+
+---
+
 ### 📅 Temporal Trends
 
 | Quarter | Net Revenue (₹) | vs Portfolio Avg |
@@ -273,7 +310,7 @@ Perfume 100ml EDP contributes 16.8% of net revenue from a 20-SKU portfolio and r
 > 💰 **Estimated Impact: +₹35–57 L annually**
 
 ### REC 2 — Rationalise the Discount Policy
-₹1.43 Cr is being lost to discounts annually (14.2% of gross revenue). Reducing average discount from 16.53% to ~12% on top-profit SKUs (Night Repair Cream, Under Eye Cream, Vitamin C Serum) — which have demonstrated margin strength — would recover significant net revenue without meaningful demand destruction.
+₹1.43 Cr is being lost to discounts annually (14.2% of gross revenue). The A/B test above statistically confirms that high-discount transactions show significantly lower revenue and margin (p < 0.00001) with **no significant gain in quantity sold** (p = 0.555) — meaning the current discount depth is not being "earned back" through volume. Reducing average discount from 16.53% to ~12% on top-profit SKUs (Night Repair Cream, Under Eye Cream, Vitamin C Serum) — which have demonstrated margin strength — would recover significant net revenue without meaningful demand destruction.
 > 💰 **Estimated Impact: +₹30–40 L in recovered net revenue**
 
 ### REC 3 — Invest in Central + North via Pharmacy Channel
@@ -345,6 +382,7 @@ Beauty_sales/
 | **Data Wrangling** | Pandas, NumPy |
 | **Data Cleaning** | Null handling, duplicate detection, dtype correction, column standardisation |
 | **Feature Engineering** | 7 derived financial & temporal metrics |
+| **Statistical Testing** | Welch's t-test (`scipy.stats.ttest_ind`) for A/B discount impact validation |
 | **ETL Pipeline** | SQLAlchemy + PyMySQL → MySQL |
 | **Database** | MySQL (glowcart_db → glowcart_sales table) |
 | **SQL Analytics** | Aggregate functions, GROUP BY, ORDER BY, LIMIT, multi-dimensional ranking |
@@ -364,7 +402,7 @@ cd GlowCart-Beauty-Sales-Analysis
 
 ### 2. Install Dependencies
 ```bash
-pip install pandas numpy sqlalchemy pymysql openpyxl
+pip install pandas numpy scipy sqlalchemy pymysql openpyxl
 ```
 
 ### 3. Run the Notebook
@@ -394,6 +432,7 @@ Open `GlowCart Beauty Sales Analysis.pbix` in Power BI Desktop. Reconnect the da
 - A product contributing **16.8% of revenue** from a 20-SKU portfolio is a strategic asset, not just a top seller — it deserves dedicated investment.
 - **Revenue ≠ Profit.** Three separate findings (reps, channels, products) showed high-revenue entities underperforming on profit — the most dangerous blind spot in a data-poor business.
 - **Discounting at 16.53% average is not a strategy** — ₹1.43 Cr/year in erosion with no systematic model for which products actually need discounting is a policy gap, not a pricing strategy.
+- **Statistical testing beats assumption.** The A/B test proved that higher discounts significantly hurt revenue and margin (p < 0.00001) while producing **no significant increase in quantity sold** (p = 0.555) — the data disproved the common "discount to drive volume" assumption outright.
 - The **ETL → SQL → BI workflow** is the real-world analytics stack. Building each layer with clean handoffs (cleaned CSV → MySQL → Power BI) made the analysis reproducible, scalable, and audit-ready.
 
 ---
@@ -403,4 +442,3 @@ Open `GlowCart Beauty Sales Analysis.pbix` in Power BI Desktop. Reconnect the da
 **Shushree Swain**
 Data Analyst | Python · SQL · Power BI
 ---
-
