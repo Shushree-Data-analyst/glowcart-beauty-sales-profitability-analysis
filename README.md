@@ -1,7 +1,5 @@
 # 💄 GlowCart Beauty — Sales & Profitability Analysis
 
-<div align="center">
-
 ![Python](https://img.shields.io/badge/Python-3.x-blue?style=for-the-badge&logo=python&logoColor=white)
 ![Pandas](https://img.shields.io/badge/Pandas-Data%20Wrangling-150458?style=for-the-badge&logo=pandas&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-SQL%20Analysis-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
@@ -9,8 +7,6 @@
 ![NumPy](https://img.shields.io/badge/NumPy-Computation-013243?style=for-the-badge&logo=numpy&logoColor=white)
 
 **An end-to-end data analytics project covering ETL, Feature Engineering, SQL Analysis, and Business Intelligence for a multi-channel beauty brand.**
-
-</div>
 
 ---
 
@@ -131,7 +127,7 @@ SELECT ROUND(AVG(gross_margin_percent), 2) AS avg_margin FROM glowcart_sales;
 
 ### Step 6 — A/B Testing (Statistical Validation)
 
-To move beyond descriptive trends, an independent-samples **Welch's t-test** was run in Python using `scipy.stats` to statistically validate whether discount level causes a real difference in revenue, margin, and volume outcomes. Full methodology and results are documented below in [A/B Testing — Discount Impact Validation](#-ab-testing--discount-impact-validation).
+To move beyond descriptive trends, an independent-samples Welch's t-test was run in Python using `scipy.stats` to statistically validate whether discount level causes a real difference in revenue, margin, and volume outcomes. Effect size (Cohen's d) was then calculated for each metric to measure the practical magnitude of each difference, not just its statistical significance. Full methodology and results are documented below in [A/B Testing — Discount Impact Validation](#-ab-testing--discount-impact-validation).
 
 ### Step 7 — Power BI Dashboard
 Built an interactive dashboard (`GlowCart Beauty Sales Analysis.pbix`) covering all dimensions with drill-down capability across region, channel, product, and rep.
@@ -235,7 +231,7 @@ Built an interactive dashboard (`GlowCart Beauty Sales Analysis.pbix`) covering 
 
 ## 🧪 A/B Testing — Discount Impact Validation
 
-To statistically validate whether discount level causes a real, measurable difference in business outcomes (rather than just an observed trend), an **independent samples t-test (Welch's t-test)** was run comparing low-discount vs high-discount transactions.
+To statistically validate whether discount level causes a real, measurable difference in business outcomes (rather than just an observed trend), an **independent samples t-test (Welch's t-test)** was run comparing low-discount vs high-discount transactions, followed by **Cohen's d** to measure the practical size of each effect.
 
 ### Experiment Design
 
@@ -244,23 +240,35 @@ To statistically validate whether discount level causes a real, measurable diffe
 | **Group A** | Discount ≤ 10% | Control (low discount) |
 | **Group B** | Discount > 20% | Treatment (high discount) |
 
-**Method:** `scipy.stats.ttest_ind(a, b, equal_var=False)` — Welch's t-test, chosen over the standard t-test because group sizes and variances are not assumed equal.
+**Significance method:** `scipy.stats.ttest_ind(a, b, equal_var=False)` — Welch's t-test, chosen over the standard t-test because group sizes and variances are not assumed equal.
 
-**Metrics tested:** Net Revenue, Gross Margin %, Quantity Sold
+**Effect size method:** Cohen's d (pooled standard deviation), interpreted as:
+
+| Cohen's d (absolute value) | Effect |
+|---|---|
+| < 0.2 | Negligible |
+| 0.2 – 0.49 | Small |
+| 0.5 – 0.79 | Medium |
+| ≥ 0.8 | Large |
+
+**Metrics tested:** Net Revenue, Gross Margin %, Quantity Sold, Gross Profit
 
 ### Results
 
-| Metric | Mean (Group A) | Mean (Group B) | t-statistic | p-value | Significant (p<0.05)? |
-|--------|----------------|-----------------|-------------|---------|-------------------------|
-| Net Revenue | ₹15,782.85 | ₹12,089.01 | 7.841 | 0.00000 | ✅ True |
-| Gross Margin % | 60.81% | 48.44% | 42.717 | 0.00000 | ✅ True |
-| Qty Sold | 30.53 | 30.88 | -0.590 | 0.55503 | ❌ False |
+| Metric | Mean (Group A) | Mean (Group B) | t-statistic | p-value | Significant (p<0.05)? | Cohen's d | Effect Size |
+|--------|----------------|-----------------|-------------|---------|-------------------------|-----------|--------------|
+| Net Revenue | ₹15,782.85 | ₹12,089.01 | 7.841 | 0.00000 | ✅ True | 0.268 | Small |
+| Gross Margin % | 60.81% | 48.44% | 42.717 | 0.00000 | ✅ True | 1.501 | Large |
+| Qty Sold | 30.53 | 30.88 | -0.590 | 0.55503 | ❌ False | -0.020 | Negligible |
+| Gross Profit | ₹9,223.26 | ₹5,540.14 | 16.057 | 0.00000 | ✅ True | 0.545 | Medium |
 
 ### Insight
 
-> High-discount transactions (Group B) show a **statistically significant drop** in both average net revenue (₹12,089 vs ₹15,783) and gross margin (48.44% vs 60.81%) compared to low-discount transactions — confirmed with extremely strong significance (p < 0.00001) on both metrics. However, quantity sold shows **no statistically significant difference** between groups (p = 0.555) — meaning bigger discounts are **not** meaningfully driving higher unit sales.
+> High-discount transactions (Group B) show a statistically significant drop in net revenue, gross margin, and gross profit compared to low-discount transactions (p < 0.00001 on all three), and the **gross margin effect is not just significant but large in practical terms** (Cohen's d = 1.501) — nearly double the 0.8 threshold for a "large" effect. Gross profit shows a medium effect (d = 0.545) and net revenue a small one (d = 0.268), indicating the discount is eroding *margin* far more aggressively than it's eroding top-line revenue.
 >
-> **This is a critical finding:** the data disproves the common assumption that "discounting drives volume." In this dataset, high discounts erode revenue and margin **without a corresponding lift in units sold** — directly reinforcing the case for **REC 2 (Rationalise the Discount Policy)**. The discount strategy is not paying for itself in volume terms.
+> Quantity sold, by contrast, shows **no statistically significant difference** between groups (p = 0.555) and a negligible effect size (d = -0.020) — meaning bigger discounts are **not** meaningfully driving higher unit sales.
+>
+> **This is a critical finding:** the data disproves the common assumption that "discounting drives volume." In this dataset, high discounts erode revenue, profit, and — most severely — margin, without a corresponding lift in units sold. The large effect size on gross margin turns this from a statistically interesting result into a practically urgent one, directly reinforcing the case for **REC 2 (Rationalise the Discount Policy)**. The discount strategy is not paying for itself in volume terms.
 
 ---
 
@@ -310,7 +318,7 @@ Perfume 100ml EDP contributes 16.8% of net revenue from a 20-SKU portfolio and r
 > 💰 **Estimated Impact: +₹35–57 L annually**
 
 ### REC 2 — Rationalise the Discount Policy
-₹1.43 Cr is being lost to discounts annually (14.2% of gross revenue). The A/B test above statistically confirms that high-discount transactions show significantly lower revenue and margin (p < 0.00001) with **no significant gain in quantity sold** (p = 0.555) — meaning the current discount depth is not being "earned back" through volume. Reducing average discount from 16.53% to ~12% on top-profit SKUs (Night Repair Cream, Under Eye Cream, Vitamin C Serum) — which have demonstrated margin strength — would recover significant net revenue without meaningful demand destruction.
+₹1.43 Cr is being lost to discounts annually (14.2% of gross revenue). The A/B test above statistically confirms that high-discount transactions show significantly lower revenue and margin (p < 0.00001) with **no significant gain in quantity sold** (p = 0.555) — and the gross margin effect size (Cohen's d = 1.501) is large, meaning the discount depth is not being "earned back" through volume. Reducing average discount from 16.53% to ~12% on top-profit SKUs (Night Repair Cream, Under Eye Cream, Vitamin C Serum) — which have demonstrated margin strength — would recover significant net revenue without meaningful demand destruction.
 > 💰 **Estimated Impact: +₹30–40 L in recovered net revenue**
 
 ### REC 3 — Invest in Central + North via Pharmacy Channel
@@ -382,7 +390,7 @@ Beauty_sales/
 | **Data Wrangling** | Pandas, NumPy |
 | **Data Cleaning** | Null handling, duplicate detection, dtype correction, column standardisation |
 | **Feature Engineering** | 7 derived financial & temporal metrics |
-| **Statistical Testing** | Welch's t-test (`scipy.stats.ttest_ind`) for A/B discount impact validation |
+| **Statistical Testing** | Welch's t-test (`scipy.stats.ttest_ind`) for A/B discount impact validation, plus Cohen's d for effect size |
 | **ETL Pipeline** | SQLAlchemy + PyMySQL → MySQL |
 | **Database** | MySQL (glowcart_db → glowcart_sales table) |
 | **SQL Analytics** | Aggregate functions, GROUP BY, ORDER BY, LIMIT, multi-dimensional ranking |
@@ -432,13 +440,13 @@ Open `GlowCart Beauty Sales Analysis.pbix` in Power BI Desktop. Reconnect the da
 - A product contributing **16.8% of revenue** from a 20-SKU portfolio is a strategic asset, not just a top seller — it deserves dedicated investment.
 - **Revenue ≠ Profit.** Three separate findings (reps, channels, products) showed high-revenue entities underperforming on profit — the most dangerous blind spot in a data-poor business.
 - **Discounting at 16.53% average is not a strategy** — ₹1.43 Cr/year in erosion with no systematic model for which products actually need discounting is a policy gap, not a pricing strategy.
-- **Statistical testing beats assumption.** The A/B test proved that higher discounts significantly hurt revenue and margin (p < 0.00001) while producing **no significant increase in quantity sold** (p = 0.555) — the data disproved the common "discount to drive volume" assumption outright.
+- **Statistical testing beats assumption.** The A/B test proved that higher discounts significantly hurt revenue, profit, and margin (p < 0.00001) while producing no significant increase in quantity sold (p = 0.555) — the data disproved the common "discount to drive volume" assumption outright.
+- **Significance isn't the whole story — effect size is.** Adding Cohen's d showed the gross margin damage isn't just statistically real but practically large (d = 1.501), while the net revenue effect, though significant, is comparatively small (d = 0.268) — a distinction that sharpens which finding to lead with in a business recommendation.
 - The **ETL → SQL → BI workflow** is the real-world analytics stack. Building each layer with clean handoffs (cleaned CSV → MySQL → Power BI) made the analysis reproducible, scalable, and audit-ready.
 
 ---
 
 ## 👩‍💻 Author
 
-**Shushree Swain**
+**Sushree Pranati Swain**
 Data Analyst | Python · SQL · Power BI
----
